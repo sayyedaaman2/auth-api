@@ -1,0 +1,5 @@
+# Ignore all files
+/node_modules
+.env*
+# But keep this one
+!.env.sample
