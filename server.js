@@ -5,6 +5,7 @@ import serverConfig from "./config/server.config.js";
 import dbConfig from "./config/db.config.js";
 
 import routes from "./routes/index.js";
+import { init } from "./utils/init.js";
 
 async function serverStart() {
   try {
@@ -27,7 +28,7 @@ async function serverStart() {
         message: err.message || "Something went wrong",
       });
     });
-
+    init();
     app.listen(serverConfig.PORT, () => {
       console.log(`Server is running on port : ${serverConfig.PORT}`);
     });

@@ -54,3 +54,16 @@ export const logIn = async (req, res, next) => {
     next(error);
   }
 };
+export const getUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+
+
+    return res.status(201).json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    next(error);
+  }
+};
