@@ -1,46 +1,41 @@
-import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import { verifyToken } from "../utils/jwt.js";
 
-export const protectedRoute = async (req, res, next) => {
-  try {
-    let token;
+export const verifyAccessToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
 
-    const authHeader = req.headers.authorization;
-
-    // Expect "Bearer <token>"
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1];
-    }
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authorized, token missing",
-      });
-    }
-
-    // verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // fetch user (without password)
-    const user = await User.findById(decoded.id).select("-password");
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authorized, user no longer exists",
-      });
-    }
-
-    // attach user to request
-    req.user = user;
-
-    next();
-  } catch (err) {
+  if (!token) {
     return res.status(401).json({
-      success: false,
-      message: "Not authorized, invalid or expired token",
+      message: "Access token missing",
     });
+  }
+
+  try {
+    const decoded = verifyToken(token);
+    req.user = decoded; // attach user data
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      message: "Invalid or expired access token",
+    });
+  }
+};
+
+
+
+export const verifyRefreshToken = async (token) => {
+  try {
+    const decoded = verifyRefreshToken(token)
+
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.refreshToken !== token) {
+      throw new Error("Invalid refresh token");
+    }
+
+    return user;
+  } catch (error) {
+    throw new Error("Refresh token expired or invalid");
   }
 };
 export const adminOnly = (req, res, next) => {

@@ -1,6 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import mongoose from "mongoose";
+import cookieParser from 'cookie-parser'
+import { globalLimiter } from "./middlewares/rateLimit.js";
+
 import serverConfig from "./config/server.config.js";
 import dbConfig from "./config/db.config.js";
 
@@ -11,10 +14,12 @@ async function serverStart() {
   try {
     await mongoose.connect(dbConfig.MONGO_URI);
     console.log(`MongoDB connected`);
-
+    
     const app = express();
+    app.use(globalLimiter);
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+    app.use(cookieParser());
 
     app.get("/", (req, res) => {
       res.send("Hello World!");

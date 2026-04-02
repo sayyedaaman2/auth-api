@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken'
+import serverConfig from '../config/server.config.js'
 import { userTypes } from "../utils/contants.js";
 const { Schema } = mongoose;
 
@@ -25,6 +26,9 @@ const userSchema = new Schema(
       enum: userTypes.values,
       default: userTypes.USER,
     },
+    refreshToken : {
+      type : String
+    }
   },
   {
     versionKey: false,
@@ -50,12 +54,27 @@ userSchema.methods.generateToken = function () {
       email: this.email,
       userType: this.userType,
     },
-    process.env.JWT_SECRET,
+    serverConfig.JWT_SECRET,
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+      expiresIn: serverConfig.JWT_EXPIRES_IN,
     }
   );
 };
+
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    {
+      id: this._id,
+      email: this.email,
+      userType: this.userType,
+    },
+    serverConfig.JWT_REFRESH_SECRET,
+    {
+      expiresIn: serverConfig.JWT_REFRESH_EXPIRES_IN ,
+    }
+  );
+};
+
 
 const User = mongoose.model("User", userSchema);
 export default User;
