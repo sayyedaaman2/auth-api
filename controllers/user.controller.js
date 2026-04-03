@@ -46,7 +46,12 @@ export const logIn = async (req, res, next) => {
     const { password: _, refreshToken: __, ...safeUser } = user.toObject();
 
     await User.findOneAndUpdate(user._id, { $set: { refreshToken: refreshToken } })
-    return res.status(200).cookie("refreshToken", refreshToken, {
+    return res.status(200).cookie("token", token, {
+      httpOnly: true,     // cannot access via JS (security)
+      secure: false,      // true in production (HTTPS)
+      sameSite: "strict", // CSRF protection
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    }).cookie("refreshToken", refreshToken, {
       httpOnly: true,     // cannot access via JS (security)
       secure: false,      // true in production (HTTPS)
       sameSite: "strict", // CSRF protection
