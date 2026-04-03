@@ -27,7 +27,7 @@ A simple authentication API built with **Node.js, Express, MongoDB (Mongoose), b
 
 ---
 
-## ⚙️ Setup
+## ⚙️ Local Setup (Without Docker)
 
 ### 1. Clone Repo
 
@@ -46,12 +46,12 @@ npm install
 
 ```env
 PORT=9000
-MONGO_URI="mongodb://admin:pass@127.0.0.1:27017/auth-api?authSource=admin"
-JWT_SECRET="some-long-random-string-here""
-JWT_EXPIRES_IN="15m"
+MONGO_URI=mongodb://127.0.0.1:27017/auth-api
+JWT_SECRET=some-long-random-string-here
+JWT_EXPIRES_IN=15m
 
-JWT_REFRESH_SECRET="some-long-random-string-here"
-JWT_REFRESH_EXPIRES_IN="7d"
+JWT_REFRESH_SECRET=some-long-random-string-here
+JWT_REFRESH_EXPIRES_IN=7d
 ```
 
 ### 4. Start Server
@@ -61,9 +61,119 @@ npm run dev
 ```
 
 Server runs on:
+👉 http://localhost:9000
 
+---
+
+## 🐳 Docker Setup (Recommended)
+
+Run this app using Docker (no need to install Node or Mongo locally).
+
+---
+
+### 1. Create `.env`
+
+```env
+PORT=9000
+MONGO_URI=mongodb://mongo:27017/auth-api
+JWT_SECRET=some-long-random-string-here
+JWT_EXPIRES_IN=15m
+
+JWT_REFRESH_SECRET=some-long-random-string-here
+JWT_REFRESH_EXPIRES_IN=7d
 ```
-http://localhost:9000
+
+---
+
+### 2. Build & Run
+
+```bash
+docker compose up --build
+```
+
+---
+
+### 3. Run in Background
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+### 4. Stop Containers
+
+```bash
+docker compose down
+```
+
+---
+
+### 5. Reset (Delete DB Data)
+
+```bash
+docker compose down -v
+```
+
+---
+
+### 6. View Logs
+
+```bash
+docker compose logs -f
+```
+
+---
+
+## ⚠️ Important Notes
+
+* Use `mongo` as DB host (NOT `localhost`) in Docker
+* Do NOT use quotes in `.env`
+* App runs on: http://localhost:9000
+
+---
+
+## 🧱 Docker Files
+
+### Dockerfile
+
+```Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 9000
+
+CMD ["npm", "start"]
+```
+
+---
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
 ```
 
 ---
@@ -73,7 +183,7 @@ http://localhost:9000
 ### 1. Signup
 
 **POST** `/auth/signup`
-#### Request Body
+
 ```json
 {
   "username": "test",
@@ -81,47 +191,14 @@ http://localhost:9000
   "password": "test123"
 }
 ```
-#### ✅ Response
-```json
-{
-  "success": true,
-  "user": {
-    "username": "test",
-    "email": "test@gmail.com",
-    "userType": "user",
-    "_id": "69275829c335d74df4124be1",
-    "createdAt": "2025-11-26T19:42:33.324Z",
-    "updatedAt": "2025-11-26T19:42:33.324Z"
-  }
-}
-```
+
 ---
 
-### 2. Login (Sets Cookie)
+### 2. Login
 
 **POST** `/auth/login`
 
-```json
-{
-  "email": "test@gmail.com",
-  "password": "test123"
-}
-```
-
-### ✅ Response
-
-```json
-{
-  "success": true,
-  "message": "Login successful",
-  "user": {
-    "_id": "...",
-    "email": "test@gmail.com"
-  }
-}
-```
-
-👉 JWT is stored in **httpOnly cookie**, not returned in response.
+👉 JWT stored in httpOnly cookie
 
 ---
 
@@ -129,31 +206,19 @@ http://localhost:9000
 
 **GET** `/profile`
 
-👉 No headers needed
-👉 Cookie is automatically sent
-
 ---
 
 ### 4. Admin Route
 
 **GET** `/admin/users`
 
-👉 Only works if `userType = admin`
+👉 Requires `userType = admin`
 
 ---
 
 ### 5. Logout
 
 **POST** `/auth/logout`
-
-### ✅ Response
-
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
 
 👉 Clears auth cookie
 
@@ -168,69 +233,30 @@ http://localhost:9000
 
 ---
 
-## 🔒 Middleware Logic
+## 🔒 Security Notes
 
-* Token is read from: `req.cookies.token`
-* Verified using JWT
-* User data attached to `req.user`
-
----
-
-## 🧪 Testing (Postman)
-
-### Step 1 — Login
-
-* Send request → `/auth/login`
-* Check **Cookies tab** → token stored
-
-### Step 2 — Access Profile
-
-* Send request → `/profile`
-* Should return user data
-
-### Step 3 — Logout
-
-* Send request → `/auth/logout`
-
-### Step 4 — Try Profile Again
-
-* Should return **401 Unauthorized**
-
----
-
-## ⚠️ Important Notes
-
-* Do NOT store JWT in localStorage (XSS risk)
-* Use HTTPS in production → `secure: true`
-* Do NOT return password field in responses
-* Use refresh tokens for long sessions (not implemented yet)
+* Do NOT store JWT in localStorage
+* Use HTTPS in production
+* Never expose password fields
+* Implement refresh tokens for long sessions
 
 ---
 
 ## 🧠 Summary
 
-| Feature  | Implementation               |
-| -------- | ---------------------------- |
-| Auth     | JWT                          |
-| Storage  | httpOnly Cookie              |
-| Logout   | Cookie cleared               |
-| Security | No token exposed to frontend |
+| Feature  | Implementation       |
+| -------- | -------------------- |
+| Auth     | JWT                  |
+| Storage  | httpOnly Cookie      |
+| Logout   | Cookie cleared       |
+| Security | No token in frontend |
 
 ---
 
-## 📌 Previous Version (Bearer Token)
-
-This project originally used Bearer token authentication (Authorization headers) 
-
-Now upgraded to **cookie-based auth for better security and real-world usage**.
-
----
-
-## 🔥 Next Improvements (You should do this)
+## 🔥 Next Improvements
 
 * Refresh token system
-* Token blacklist (for forced logout)
-* Rate limiting per user
+* Token blacklist
 * Email verification
 * Password reset flow
 
